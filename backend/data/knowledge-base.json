@@ -1,0 +1,72 @@
+[
+  {
+    "id": "password-reset",
+    "category": "Account",
+    "question": "How do I reset my password?",
+    "keywords": ["password", "reset", "forgot password", "login", "locked out"],
+    "answer": "Go to the login page and click 'Forgot Password'. Enter your registered email address and follow the link sent to your inbox. Reset links expire after 30 minutes. If you don't receive an email, check your spam folder or contact IT to verify your account email is correct."
+  },
+  {
+    "id": "vpn-connection",
+    "category": "Network",
+    "question": "I can't connect to the VPN",
+    "keywords": ["vpn", "connect", "remote access", "network", "cannot connect"],
+    "answer": "1) Confirm you have an active internet connection. 2) Make sure the VPN client is updated to the latest version. 3) Restart the VPN client and your router. 4) Verify your VPN credentials haven't expired. If the issue persists, share the exact error message with IT support."
+  },
+  {
+    "id": "software-install",
+    "category": "Software",
+    "question": "How do I request new software installation?",
+    "keywords": ["install", "software", "application", "request app", "new program"],
+    "answer": "Submit a software request ticket including the software name, version, and business justification. Approved requests are typically installed within 1-2 business days by IT via the self-service portal or remote deployment."
+  },
+  {
+    "id": "email-not-sending",
+    "category": "Email",
+    "question": "My email isn't sending or receiving",
+    "keywords": ["email", "outlook", "not sending", "not receiving", "mail stuck"],
+    "answer": "Check your internet connection and mailbox storage (full mailboxes block sending). Restart your email client. If using Outlook, try Outlook Safe Mode. If the problem continues, there may be a mail server outage - check the IT status page or contact support."
+  },
+  {
+    "id": "printer-issues",
+    "category": "Hardware",
+    "question": "My printer isn't working",
+    "keywords": ["printer", "printing", "print", "not printing"],
+    "answer": "1) Check the printer is powered on and connected to the network. 2) Clear the print queue and try again. 3) Reinstall or update the printer driver. 4) Try printing a test page from the device itself. If none of this works, note the printer's error code and contact IT."
+  },
+  {
+    "id": "slow-computer",
+    "category": "Hardware",
+    "question": "My computer is running slow",
+    "keywords": ["slow", "performance", "lagging", "freezing", "computer slow"],
+    "answer": "Restart your computer to clear temporary processes. Close unused applications and browser tabs. Check available disk space (free up space if below 10%). Run a malware scan. If the problem persists after these steps, IT may need to check for hardware issues."
+  },
+  {
+    "id": "mfa-setup",
+    "category": "Account",
+    "question": "How do I set up multi-factor authentication (MFA)?",
+    "keywords": ["mfa", "2fa", "multi-factor", "authenticator", "two factor"],
+    "answer": "Download an authenticator app (Microsoft Authenticator or Google Authenticator). Go to your account security settings, select 'Set up MFA', and scan the QR code with the app. Save your backup codes somewhere secure in case you lose your device."
+  },
+  {
+    "id": "wifi-issues",
+    "category": "Network",
+    "question": "I can't connect to WiFi",
+    "keywords": ["wifi", "wireless", "internet", "no connection", "network"],
+    "answer": "Toggle WiFi off and on, then reconnect to the correct network. Forget the network and reconnect with the correct password. Restart your device. If other devices also can't connect, the issue may be with the router - contact IT to check for an outage."
+  },
+  {
+    "id": "account-locked",
+    "category": "Account",
+    "question": "My account is locked",
+    "keywords": ["locked", "account locked", "too many attempts", "disabled"],
+    "answer": "Accounts typically lock after 5 failed login attempts and unlock automatically after 30 minutes. If you need immediate access, contact IT support with your employee ID for identity verification before they can manually unlock it."
+  },
+  {
+    "id": "file-recovery",
+    "category": "Software",
+    "question": "I accidentally deleted a file, can I recover it?",
+    "keywords": ["deleted file", "recover", "restore file", "lost file", "recycle bin"],
+    "answer": "Check the Recycle Bin/Trash first. For files stored on shared drives or cloud storage (OneDrive/Google Drive), check the 'Version History' or 'Deleted items' section, which often retains files for 30-90 days. Contact IT promptly if it's a critical file that isn't recoverable this way."
+  }
+]
