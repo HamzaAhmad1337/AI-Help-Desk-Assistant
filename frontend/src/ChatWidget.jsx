@@ -76,6 +76,12 @@ export default function ChatWidget({ open, onClose }) {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
 
+  const last = messages[messages.length - 1];
+  const settledReply =
+    last?.role === "assistant" && !last.streaming && !loading && !toolStatus
+      ? last.content
+      : "";
+
   function handleSubmit(event) {
     event.preventDefault();
     pinnedToBottom.current = true;
@@ -118,15 +124,17 @@ export default function ChatWidget({ open, onClose }) {
 
       <div className="widget-body">
         <div className="messages" ref={scrollRef} onScroll={handleScroll}>
-          {/* Announces new assistant replies to screen readers. */}
-          <div className="sr-only" aria-live="polite" aria-atomic="false">
-            {!loading && !toolStatus && messages[messages.length - 1]?.role === "assistant"
-              ? messages[messages.length - 1].content
-              : ""}
+          {/*
+            Announces completed assistant replies. This must wait for the
+            stream to finish: announcing while `streaming` is true would make a
+            screen reader re-read the whole growing message on every token.
+          */}
+          <div className="sr-only" aria-live="polite" aria-atomic="true">
+            {settledReply}
           </div>
 
-          {messages.map((message, index) => (
-            <Message key={index} message={message} />
+          {messages.map((message) => (
+            <Message key={message.id} message={message} />
           ))}
 
           {toolStatus && (

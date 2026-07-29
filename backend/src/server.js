@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import Anthropic from "@anthropic-ai/sdk";
+import { pathToFileURL } from "url";
 
 import { PORT, ALLOWED_ORIGINS, MAX_MESSAGE_LENGTH } from "./config.js";
 import { runAgent } from "./agent.js";
@@ -152,11 +153,29 @@ export function createApp({ anthropic = client } = {}) {
 
   app.use((_req, res) => res.status(404).json({ error: "Not found." }));
 
+  // Without this, malformed or oversized JSON bodies fall through to Express's
+  // default handler, which replies with an HTML error page that clients parsing
+  // JSON cannot read.
+  // eslint-disable-next-line no-unused-vars -- Express identifies error handlers by arity.
+  app.use((err, _req, res, _next) => {
+    if (err?.type === "entity.too.large") {
+      return res.status(413).json({ error: "Request body is too large." });
+    }
+    if (err instanceof SyntaxError && "body" in err) {
+      return res.status(400).json({ error: "Request body is not valid JSON." });
+    }
+    console.error("Unhandled error:", err);
+    res.status(500).json({ error: "Something went wrong." });
+  });
+
   return app;
 }
 
 // Only start a server when run directly, so tests can import createApp cleanly.
-const isDirectRun = process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop());
+// Compares resolved paths rather than basenames, which would also match any
+// unrelated entrypoint that happened to be called server.js.
+const isDirectRun =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isDirectRun) {
   createApp().listen(PORT, () => {

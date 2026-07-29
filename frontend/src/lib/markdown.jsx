@@ -48,6 +48,7 @@ function renderInline(text, keyPrefix) {
 
 const ORDERED_ITEM = /^\s*(\d+)[.)]\s+(.*)$/;
 const BULLET_ITEM = /^\s*[-*•]\s+(.*)$/;
+const HEADING = /^\s*(#{1,4})\s+(.*)$/;
 
 /**
  * Renders Markdown text to an array of React elements.
@@ -85,6 +86,21 @@ export function renderMarkdown(text) {
     if (!line.trim()) {
       flushParagraph();
       flushList();
+      continue;
+    }
+
+    const heading = line.match(HEADING);
+    if (heading) {
+      flushParagraph();
+      flushList();
+      // Rendered as a styled div rather than h1-h4: chat bubbles sit inside an
+      // existing document outline, and injecting headings would corrupt it.
+      const key = `h-${blocks.length}`;
+      blocks.push(
+        <div className="md-heading" key={key} role="presentation">
+          {renderInline(heading[2], key)}
+        </div>
+      );
       continue;
     }
 

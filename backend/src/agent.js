@@ -42,8 +42,18 @@ function normalizeHistory(history) {
  * Runs the assistant without an API key: answers straight from the knowledge
  * base so the product still works end to end in local/demo setups.
  */
-async function* runOffline(message) {
-  const articles = searchKnowledgeBase(message);
+async function* runOffline(message, history = []) {
+  // Short follow-ups ("what about step 3?") carry no searchable terms on their
+  // own, so fold in the previous user turn to keep retrieval on topic.
+  const previousUserTurn = [...normalizeHistory(history)]
+    .reverse()
+    .find((m) => m.role === "user");
+
+  const isFollowUp = message.trim().split(/\s+/).length <= 4;
+  const query =
+    isFollowUp && previousUserTurn ? `${previousUserTurn.content} ${message}` : message;
+
+  const articles = searchKnowledgeBase(query);
 
   const reply =
     articles.length > 0
@@ -77,7 +87,7 @@ async function* runOffline(message) {
  */
 export async function* runAgent({ client, message, history = [] }) {
   if (!client) {
-    yield* runOffline(message);
+    yield* runOffline(message, history);
     return;
   }
 

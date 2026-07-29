@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, unlinkSync } from "fs";
 import { fileURLToPath } from "url";
 import path from "path";
 
@@ -28,7 +28,21 @@ let tickets = load();
 function persist() {
   if (inMemoryOnly) return;
   if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
-  writeFileSync(ticketsPath, JSON.stringify(tickets, null, 2));
+
+  // Write to a temp file and rename, so a crash mid-write can't leave the
+  // store truncated. Rename is atomic within a filesystem.
+  const tempPath = `${ticketsPath}.${process.pid}.tmp`;
+  try {
+    writeFileSync(tempPath, JSON.stringify(tickets, null, 2));
+    renameSync(tempPath, ticketsPath);
+  } catch (err) {
+    console.error("Could not persist tickets:", err.message);
+    try {
+      if (existsSync(tempPath)) unlinkSync(tempPath);
+    } catch {
+      // Best effort cleanup.
+    }
+  }
 }
 
 function nextReference() {
