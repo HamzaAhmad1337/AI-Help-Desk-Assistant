@@ -73,8 +73,10 @@ export default function ChatWidget({ open, onClose }) {
     setLoading(true);
     setError(null);
 
+    let streamStarted = false;
+
     try {
-      const res = await fetch(`${API_BASE}/api/chat`, {
+      const res = await fetch(`${API_BASE}/api/chat/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -83,21 +85,75 @@ export default function ChatWidget({ open, onClose }) {
         }),
       });
 
-      if (!res.ok) {
+      if (!res.ok || !res.body) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `Request failed (${res.status})`);
       }
 
-      const data = await res.json();
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: data.reply,
-          articles: data.articles,
-          time: Date.now(),
-        },
-      ]);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      const beginStream = () => {
+        streamStarted = true;
+        setLoading(false);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: "", streaming: true, time: Date.now() },
+        ]);
+      };
+
+      const appendDelta = (text) => {
+        setMessages((prev) => {
+          const next = [...prev];
+          next[next.length - 1] = {
+            ...next[next.length - 1],
+            content: next[next.length - 1].content + text,
+          };
+          return next;
+        });
+      };
+
+      const finishStream = ({ articles }) => {
+        setMessages((prev) => {
+          const next = [...prev];
+          next[next.length - 1] = {
+            ...next[next.length - 1],
+            streaming: false,
+            articles,
+          };
+          return next;
+        });
+      };
+
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const chunks = buffer.split("\n\n");
+        buffer = chunks.pop() ?? "";
+
+        for (const chunk of chunks) {
+          const eventLine = chunk.split("\n").find((l) => l.startsWith("event:"));
+          const dataLine = chunk.split("\n").find((l) => l.startsWith("data:"));
+          if (!eventLine || !dataLine) continue;
+
+          const event = eventLine.replace("event:", "").trim();
+          const data = JSON.parse(dataLine.replace("data:", "").trim());
+
+          if (event === "delta") {
+            if (!streamStarted) beginStream();
+            appendDelta(data.text);
+          } else if (event === "done") {
+            if (!streamStarted) beginStream();
+            finishStream(data);
+          } else if (event === "error") {
+            throw new Error(data.error);
+          }
+        }
+      }
     } catch (err) {
       setError(err.message || "Failed to reach the help desk server.");
     } finally {
@@ -134,7 +190,10 @@ export default function ChatWidget({ open, onClose }) {
               {msg.role === "assistant" && <Avatar role="assistant" />}
               <div className="message-col">
                 <div className="bubble">
-                  <p>{msg.content}</p>
+                  <p>
+                    {msg.content}
+                    {msg.streaming && <span className="cursor" />}
+                  </p>
                   {msg.articles && msg.articles.length > 0 && (
                     <div className="articles">
                       <span className="articles-label">Related articles</span>

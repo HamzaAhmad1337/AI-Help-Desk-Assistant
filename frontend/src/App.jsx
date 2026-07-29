@@ -1,6 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import ChatWidget from "./ChatWidget.jsx";
+
+function usePreferredTheme() {
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem("nova-theme");
+    if (saved) return saved;
+    return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("nova-theme", theme);
+  }, [theme]);
+
+  return [theme, setTheme];
+}
 
 const FEATURES = [
   {
@@ -27,6 +42,7 @@ const FEATURES = [
 
 export default function App() {
   const [chatOpen, setChatOpen] = useState(false);
+  const [theme, setTheme] = usePreferredTheme();
 
   return (
     <div className="page">
@@ -38,9 +54,37 @@ export default function App() {
           <span className="brand-mark" />
           Nova Help Desk
         </div>
-        <button className="nav-cta" onClick={() => setChatOpen(true)}>
-          Chat with Nova
-        </button>
+        <div className="nav-actions">
+          <button
+            className="theme-toggle"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            aria-label="Toggle theme"
+          >
+            {theme === "dark" ? (
+              <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
+                <path
+                  d="M17 10.5A7 7 0 019.5 3a7 7 0 100 14A7 7 0 0017 10.5z"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            ) : (
+              <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
+                <circle cx="10" cy="10" r="4" stroke="currentColor" strokeWidth="1.4" />
+                <path
+                  d="M10 2v2M10 16v2M2 10h2M16 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                />
+              </svg>
+            )}
+          </button>
+          <button className="nav-cta" onClick={() => setChatOpen(true)}>
+            Chat with Nova
+          </button>
+        </div>
       </nav>
 
       <header className="hero">

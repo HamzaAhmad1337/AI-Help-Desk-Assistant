@@ -91,6 +91,85 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
+function sseWrite(res, event, data) {
+  res.write(`event: ${event}\n`);
+  res.write(`data: ${JSON.stringify(data)}\n\n`);
+}
+
+app.post("/api/chat/stream", async (req, res) => {
+  const { message, history = [] } = req.body;
+  if (!message || typeof message !== "string" || !message.trim()) {
+    return res.status(400).json({ error: "Message is required." });
+  }
+
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+  });
+
+  const relevant = searchKnowledgeBase(message);
+
+  try {
+    if (!anthropic) {
+      const reply =
+        relevant.length > 0
+          ? relevant[0].answer
+          : "I couldn't find a matching help article, and AI fallback is not configured " +
+            "(missing ANTHROPIC_API_KEY). Please open a support ticket with IT for further help.";
+
+      for (const word of reply.split(" ")) {
+        sseWrite(res, "delta", { text: word + " " });
+        await new Promise((r) => setTimeout(r, 18));
+      }
+      sseWrite(res, "done", {
+        source: relevant.length > 0 ? "knowledge-base" : "fallback",
+        articles: relevant,
+      });
+      return res.end();
+    }
+
+    const kbContext =
+      relevant.length > 0
+        ? `Relevant knowledge base articles:\n${relevant
+            .map((a) => `- ${a.question}: ${a.answer}`)
+            .join("\n")}`
+        : "No matching knowledge base articles were found for this question.";
+
+    const messages = [
+      ...history
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .map((m) => ({ role: m.role, content: m.content })),
+      { role: "user", content: `${kbContext}\n\nUser question: ${message}` },
+    ];
+
+    const stream = anthropic.messages.stream({
+      model: "claude-sonnet-5",
+      max_tokens: 600,
+      system: SYSTEM_PROMPT,
+      messages,
+    });
+
+    stream.on("text", (text) => {
+      sseWrite(res, "delta", { text });
+    });
+
+    stream.on("error", (err) => {
+      console.error("Stream error:", err);
+      sseWrite(res, "error", { error: "Something went wrong processing your request." });
+      res.end();
+    });
+
+    await stream.finalMessage();
+    sseWrite(res, "done", { source: "ai", articles: relevant });
+    res.end();
+  } catch (err) {
+    console.error("Chat stream error:", err);
+    sseWrite(res, "error", { error: "Something went wrong processing your request." });
+    res.end();
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`AI Help Desk backend running on http://localhost:${PORT}`);
   if (!anthropic) {

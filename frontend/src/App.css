@@ -1,5 +1,6 @@
 /* ---------- Design tokens ---------- */
-:root {
+:root,
+:root[data-theme="dark"] {
   --bg: #0a0b10;
   --bg-elev: #12141c;
   --bg-elev-2: #181b26;
@@ -12,10 +13,42 @@
   --accent-grad: linear-gradient(135deg, var(--accent-1), var(--accent-2));
   --shadow-lg: 0 24px 60px -20px rgba(0, 0, 0, 0.6);
   --radius: 18px;
+  --glow-opacity: 0.35;
+  --card-tint: rgba(255, 255, 255, 0.04);
+  --card-tint-2: rgba(255, 255, 255, 0.01);
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #f6f7fb;
+  --bg-elev: #ffffff;
+  --bg-elev-2: #f1f2f8;
+  --border: #e3e5ee;
+  --text: #14151d;
+  --text-dim: #565c72;
+  --text-faint: #8890a4;
+  --accent-1: #6d4bff;
+  --accent-2: #1fb8e8;
+  --accent-grad: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  --shadow-lg: 0 24px 60px -20px rgba(30, 30, 60, 0.25);
+  --radius: 18px;
+  --glow-opacity: 0.18;
+  --card-tint: rgba(20, 21, 29, 0.035);
+  --card-tint-2: rgba(20, 21, 29, 0.005);
+  color-scheme: light;
 }
 
 * {
   box-sizing: border-box;
+}
+
+.page,
+.widget,
+.nav-cta,
+.theme-toggle,
+.feature-card,
+.launcher {
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
 }
 
 /* ---------- Page / landing ---------- */
@@ -32,7 +65,7 @@
   position: fixed;
   border-radius: 50%;
   filter: blur(120px);
-  opacity: 0.35;
+  opacity: var(--glow-opacity);
   pointer-events: none;
   z-index: 0;
 }
@@ -79,6 +112,30 @@
   border-radius: 7px;
   background: var(--accent-grad);
   box-shadow: 0 0 20px rgba(124, 92, 255, 0.6);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.theme-toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  border-color: rgba(124, 92, 255, 0.5);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .nav-cta {
@@ -204,7 +261,7 @@
 }
 
 .feature-card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+  background: linear-gradient(180deg, var(--card-tint), var(--card-tint-2));
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 22px 18px;
@@ -216,7 +273,7 @@
 .feature-card:hover {
   transform: translateY(-4px);
   border-color: rgba(124, 92, 255, 0.4);
-  background: linear-gradient(180deg, rgba(124, 92, 255, 0.08), rgba(255, 255, 255, 0.01));
+  background: linear-gradient(180deg, rgba(124, 92, 255, 0.1), var(--card-tint-2));
 }
 
 .feature-icon {
@@ -509,6 +566,27 @@
 
 .bubble p {
   margin: 0;
+}
+
+.cursor {
+  display: inline-block;
+  width: 2px;
+  height: 14px;
+  margin-left: 2px;
+  background: currentColor;
+  vertical-align: text-bottom;
+  animation: cursorBlink 0.9s steps(1) infinite;
+}
+
+@keyframes cursorBlink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
 }
 
 .timestamp {
