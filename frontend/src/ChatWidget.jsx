@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3001";
+import Message from "./components/Message.jsx";
+import { useChat } from "./lib/useChat.js";
+import { IconClose, IconSend, IconRefresh } from "./components/Icons.jsx";
 
 const QUICK_QUESTIONS = [
   "Reset my password",
@@ -9,253 +10,190 @@ const QUICK_QUESTIONS = [
   "Set up MFA",
 ];
 
-const WELCOME_MESSAGE = {
-  role: "assistant",
-  content:
-    "Hey there 👋 I'm Nova, your AI help desk assistant. Tell me what's going on " +
-    "and I'll get you sorted — password resets, VPN, WiFi, email, printers, you name it.",
-  time: Date.now(),
-};
-
-function formatTime(ts) {
-  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-function Avatar({ role }) {
-  if (role === "assistant") {
-    return (
-      <div className="avatar avatar-bot" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="12" fill="url(#g)" />
-          <defs>
-            <linearGradient id="g" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#7C5CFF" />
-              <stop offset="1" stopColor="#4FD1FF" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M8 10.5c0-.83.67-1.5 1.5-1.5S11 9.67 11 10.5 10.33 12 9.5 12 8 11.33 8 10.5zM13 10.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5zM8.5 15.25c1.02.9 2.2 1.35 3.5 1.35s2.48-.45 3.5-1.35"
-            stroke="white"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-          />
-        </svg>
-      </div>
-    );
-  }
-  return <div className="avatar avatar-user">You</div>;
-}
-
 export default function ChatWidget({ open, onClose }) {
-  const [messages, setMessages] = useState([WELCOME_MESSAGE]);
+  const { messages, loading, toolStatus, error, send, retry, reset } = useChat();
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const bottomRef = useRef(null);
+
+  const panelRef = useRef(null);
   const inputRef = useRef(null);
+  const scrollRef = useRef(null);
+  const endRef = useRef(null);
+  const pinnedToBottom = useRef(true);
+
+  // Only autoscroll when the user is already at the bottom, so scrolling back
+  // to read an earlier answer isn't yanked away by incoming tokens.
+  useEffect(() => {
+    if (pinnedToBottom.current) {
+      endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+  }, [messages, loading, toolStatus]);
+
+  function handleScroll() {
+    const el = scrollRef.current;
+    if (!el) return;
+    pinnedToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+  }
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading, open]);
-
-  useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 250);
+    if (open) {
+      pinnedToBottom.current = true;
+      const timer = setTimeout(() => inputRef.current?.focus(), 260);
+      return () => clearTimeout(timer);
+    }
   }, [open]);
 
-  async function sendMessage(text) {
-    const trimmed = text.trim();
-    if (!trimmed || loading) return;
+  // Escape closes the widget; Tab cycles within it while it's open.
+  useEffect(() => {
+    if (!open) return;
 
-    const userMessage = { role: "user", content: trimmed, time: Date.now() };
-    const nextMessages = [...messages, userMessage];
-    setMessages(nextMessages);
-    setInput("");
-    setLoading(true);
-    setError(null);
-
-    let streamStarted = false;
-
-    try {
-      const res = await fetch(`${API_BASE}/api/chat/stream`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: trimmed,
-          history: nextMessages.slice(-10).map(({ role, content }) => ({ role, content })),
-        }),
-      });
-
-      if (!res.ok || !res.body) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `Request failed (${res.status})`);
+    function onKeyDown(event) {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        onClose();
+        return;
       }
 
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
+      if (event.key !== "Tab") return;
 
-      const beginStream = () => {
-        streamStarted = true;
-        setLoading(false);
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: "", streaming: true, time: Date.now() },
-        ]);
-      };
+      const focusable = panelRef.current?.querySelectorAll(
+        'button:not([disabled]), input, a[href], [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable?.length) return;
 
-      const appendDelta = (text) => {
-        setMessages((prev) => {
-          const next = [...prev];
-          next[next.length - 1] = {
-            ...next[next.length - 1],
-            content: next[next.length - 1].content + text,
-          };
-          return next;
-        });
-      };
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
 
-      const finishStream = ({ articles }) => {
-        setMessages((prev) => {
-          const next = [...prev];
-          next[next.length - 1] = {
-            ...next[next.length - 1],
-            streaming: false,
-            articles,
-          };
-          return next;
-        });
-      };
-
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        const chunks = buffer.split("\n\n");
-        buffer = chunks.pop() ?? "";
-
-        for (const chunk of chunks) {
-          const eventLine = chunk.split("\n").find((l) => l.startsWith("event:"));
-          const dataLine = chunk.split("\n").find((l) => l.startsWith("data:"));
-          if (!eventLine || !dataLine) continue;
-
-          const event = eventLine.replace("event:", "").trim();
-          const data = JSON.parse(dataLine.replace("data:", "").trim());
-
-          if (event === "delta") {
-            if (!streamStarted) beginStream();
-            appendDelta(data.text);
-          } else if (event === "done") {
-            if (!streamStarted) beginStream();
-            finishStream(data);
-          } else if (event === "error") {
-            throw new Error(data.error);
-          }
-        }
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
       }
-    } catch (err) {
-      setError(err.message || "Failed to reach the help desk server.");
-    } finally {
-      setLoading(false);
     }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    pinnedToBottom.current = true;
+    send(input);
+    setInput("");
   }
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    sendMessage(input);
+  function askQuick(question) {
+    pinnedToBottom.current = true;
+    send(question);
   }
 
   return (
-    <div className={`widget ${open ? "widget-open" : "widget-closed"}`}>
-      <div className="widget-header">
+    <section
+      ref={panelRef}
+      className={`widget ${open ? "widget-open" : "widget-closed"}`}
+      role="dialog"
+      aria-modal="false"
+      aria-label="Nova help desk chat"
+      aria-hidden={!open}
+      {...(open ? {} : { inert: "" })}
+    >
+      <header className="widget-header">
         <div className="widget-header-info">
-          <div className="widget-status-dot" />
+          <span className="widget-status-dot" aria-hidden="true" />
           <div>
             <h2>Nova &middot; Help Desk</h2>
             <p>Usually replies instantly</p>
           </div>
         </div>
-        <button className="widget-close" onClick={onClose} aria-label="Close chat">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          </svg>
-        </button>
-      </div>
+        <div className="widget-header-actions">
+          <button onClick={reset} aria-label="Start a new conversation" title="New conversation">
+            <IconRefresh />
+          </button>
+          <button onClick={onClose} aria-label="Close chat" title="Close">
+            <IconClose />
+          </button>
+        </div>
+      </header>
 
       <div className="widget-body">
-        <div className="messages">
-          {messages.map((msg, idx) => (
-            <div key={idx} className={`message-row ${msg.role}`}>
-              {msg.role === "assistant" && <Avatar role="assistant" />}
-              <div className="message-col">
-                <div className="bubble">
-                  <p>
-                    {msg.content}
-                    {msg.streaming && <span className="cursor" />}
-                  </p>
-                  {msg.articles && msg.articles.length > 0 && (
-                    <div className="articles">
-                      <span className="articles-label">Related articles</span>
-                      <ul>
-                        {msg.articles.map((a) => (
-                          <li key={a.id}>{a.question}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-                <span className="timestamp">{formatTime(msg.time)}</span>
-              </div>
-              {msg.role === "user" && <Avatar role="user" />}
-            </div>
+        <div className="messages" ref={scrollRef} onScroll={handleScroll}>
+          {/* Announces new assistant replies to screen readers. */}
+          <div className="sr-only" aria-live="polite" aria-atomic="false">
+            {!loading && !toolStatus && messages[messages.length - 1]?.role === "assistant"
+              ? messages[messages.length - 1].content
+              : ""}
+          </div>
+
+          {messages.map((message, index) => (
+            <Message key={index} message={message} />
           ))}
 
-          {loading && (
+          {toolStatus && (
+            <div className="tool-status" role="status">
+              <span className="tool-spinner" aria-hidden="true" />
+              {toolStatus}…
+            </div>
+          )}
+
+          {loading && !toolStatus && (
             <div className="message-row assistant">
-              <Avatar role="assistant" />
-              <div className="message-col">
-                <div className="bubble typing">
-                  <span />
-                  <span />
-                  <span />
-                </div>
+              <div className="avatar" aria-hidden="true" />
+              <div className="bubble typing" role="status" aria-label="Nova is typing">
+                <span />
+                <span />
+                <span />
               </div>
             </div>
           )}
 
-          {error && <div className="error-banner">&#9888; {error}</div>}
-          <div ref={bottomRef} />
+          {error && (
+            <div className="error-banner" role="alert">
+              <span>{error}</span>
+              <button onClick={retry}>Retry</button>
+            </div>
+          )}
+
+          <div ref={endRef} />
         </div>
 
-        {messages.length <= 1 && (
+        {messages.length <= 1 && !loading && (
           <div className="quick-questions">
-            {QUICK_QUESTIONS.map((q) => (
-              <button key={q} onClick={() => sendMessage(q)}>
-                {q}
+            {QUICK_QUESTIONS.map((question) => (
+              <button key={question} onClick={() => askQuick(question)}>
+                {question}
               </button>
             ))}
           </div>
         )}
 
         <form className="input-bar" onSubmit={handleSubmit}>
+          <label className="sr-only" htmlFor="nova-input">
+            Describe your IT issue
+          </label>
           <input
+            id="nova-input"
             ref={inputRef}
             type="text"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your question..."
+            onChange={(event) => setInput(event.target.value)}
+            placeholder="Type your question…"
+            autoComplete="off"
+            maxLength={4000}
             disabled={loading}
           />
-          <button type="submit" className="send-btn" disabled={loading || !input.trim()} aria-label="Send">
-            <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-              <path d="M2.5 10L17.5 3L12 17.5L9.5 11.5L2.5 10Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" fill="none" />
-              <path d="M9.5 11.5L17.5 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-            </svg>
+          <button
+            type="submit"
+            className="send-btn"
+            disabled={loading || !input.trim()}
+            aria-label="Send message"
+          >
+            <IconSend />
           </button>
         </form>
-        <div className="widget-footer">Powered by Claude &middot; AI Help Desk</div>
+
+        <p className="widget-footer">Nova can make mistakes — verify anything critical.</p>
       </div>
-    </div>
+    </section>
   );
 }

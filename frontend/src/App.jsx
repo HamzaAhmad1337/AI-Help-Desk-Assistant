@@ -1,11 +1,43 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import ChatWidget from "./ChatWidget.jsx";
+import {
+  IconChat,
+  IconSun,
+  IconMoon,
+  IconShield,
+  IconGlobe,
+  IconLaptop,
+  IconLifebuoy,
+} from "./components/Icons.jsx";
 
-function usePreferredTheme() {
+const FEATURES = [
+  {
+    Icon: IconShield,
+    title: "Account & Access",
+    desc: "Password resets, MFA enrolment, and account lockouts — handled in seconds.",
+  },
+  {
+    Icon: IconGlobe,
+    title: "Network & VPN",
+    desc: "Guided WiFi and VPN troubleshooting, with live service status checks.",
+  },
+  {
+    Icon: IconLaptop,
+    title: "Hardware & Software",
+    desc: "Printers, slow machines, installs — clear step-by-step fixes on demand.",
+  },
+  {
+    Icon: IconLifebuoy,
+    title: "Real Escalation",
+    desc: "If chat can't fix it, Nova opens a real ticket with the full context attached.",
+  },
+];
+
+function useTheme() {
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem("nova-theme");
-    if (saved) return saved;
+    if (saved === "light" || saved === "dark") return saved;
     return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
   });
 
@@ -17,69 +49,32 @@ function usePreferredTheme() {
   return [theme, setTheme];
 }
 
-const FEATURES = [
-  {
-    icon: "🔐",
-    title: "Account & Access",
-    desc: "Password resets, MFA setup, and account lockouts — solved in seconds.",
-  },
-  {
-    icon: "🌐",
-    title: "Network & VPN",
-    desc: "Get back online fast with guided WiFi and VPN troubleshooting.",
-  },
-  {
-    icon: "🖨️",
-    title: "Hardware & Software",
-    desc: "Printers, slow machines, installs — step-by-step fixes on demand.",
-  },
-  {
-    icon: "🎫",
-    title: "Escalation Ready",
-    desc: "Can't fix it in chat? You'll know exactly what to include in a ticket.",
-  },
-];
-
 export default function App() {
   const [chatOpen, setChatOpen] = useState(false);
-  const [theme, setTheme] = usePreferredTheme();
+  const [theme, setTheme] = useTheme();
 
   return (
     <div className="page">
-      <div className="bg-glow bg-glow-1" />
-      <div className="bg-glow bg-glow-2" />
+      <div className="bg-glow bg-glow-1" aria-hidden="true" />
+      <div className="bg-glow bg-glow-2" aria-hidden="true" />
+
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
 
       <nav className="nav">
         <div className="brand">
-          <span className="brand-mark" />
+          <span className="brand-mark" aria-hidden="true" />
           Nova Help Desk
         </div>
         <div className="nav-actions">
           <button
             className="theme-toggle"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            aria-label="Toggle theme"
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+            title="Toggle theme"
           >
-            {theme === "dark" ? (
-              <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
-                <path
-                  d="M17 10.5A7 7 0 019.5 3a7 7 0 100 14A7 7 0 0017 10.5z"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            ) : (
-              <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
-                <circle cx="10" cy="10" r="4" stroke="currentColor" strokeWidth="1.4" />
-                <path
-                  d="M10 2v2M10 16v2M2 10h2M16 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                />
-              </svg>
-            )}
+            {theme === "dark" ? <IconMoon /> : <IconSun />}
           </button>
           <button className="nav-cta" onClick={() => setChatOpen(true)}>
             Chat with Nova
@@ -87,48 +82,49 @@ export default function App() {
         </div>
       </nav>
 
-      <header className="hero">
-        <span className="eyebrow">AI-Powered IT Support</span>
-        <h1>
-          Get unstuck in <span className="gradient-text">seconds</span>, not tickets.
-        </h1>
-        <p className="hero-sub">
-          Nova is your always-on help desk assistant — instant, friendly, and genuinely
-          useful for the IT problems that slow your day down.
-        </p>
-        <button className="hero-cta" onClick={() => setChatOpen(true)}>
-          <span className="pulse-dot" />
-          Start a conversation
-        </button>
-      </header>
+      <main id="main">
+        <header className="hero">
+          <span className="eyebrow">AI-Powered IT Support</span>
+          <h1>
+            Get unstuck in <span className="gradient-text">seconds</span>, not tickets.
+          </h1>
+          <p className="hero-sub">
+            Nova troubleshoots your IT problems in chat, checks live service status before
+            sending you down a rabbit hole, and opens a ticket only when it genuinely needs to.
+          </p>
+          <button className="hero-cta" onClick={() => setChatOpen(true)}>
+            <span className="pulse-dot" aria-hidden="true" />
+            Start a conversation
+          </button>
+        </header>
 
-      <section className="features">
-        {FEATURES.map((f) => (
-          <div className="feature-card" key={f.title}>
-            <div className="feature-icon">{f.icon}</div>
-            <h3>{f.title}</h3>
-            <p>{f.desc}</p>
-          </div>
-        ))}
-      </section>
+        <section className="features" aria-label="What Nova can help with">
+          {FEATURES.map(({ Icon, title, desc }) => (
+            <article className="feature-card" key={title}>
+              <div className="feature-icon">
+                <Icon />
+              </div>
+              <h3>{title}</h3>
+              <p>{desc}</p>
+            </article>
+          ))}
+        </section>
+      </main>
 
       <footer className="footer">
         <p>Available 24/7 &middot; Powered by Claude</p>
       </footer>
 
-      {!chatOpen && (
-        <button className="launcher" onClick={() => setChatOpen(true)} aria-label="Open chat">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M4 12c0-4.4 3.6-8 8-8s8 3.6 8 8-3.6 8-8 8c-1.1 0-2.15-.22-3.1-.63L4 20l1.06-4.32C4.4 14.63 4 13.36 4 12z"
-              stroke="white"
-              strokeWidth="1.6"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <span className="launcher-badge" />
-        </button>
-      )}
+      <button
+        className={`launcher ${chatOpen ? "launcher-hidden" : ""}`}
+        onClick={() => setChatOpen(true)}
+        aria-label="Open help desk chat"
+        aria-expanded={chatOpen}
+        tabIndex={chatOpen ? -1 : 0}
+      >
+        <IconChat />
+        <span className="launcher-badge" aria-hidden="true" />
+      </button>
 
       <ChatWidget open={chatOpen} onClose={() => setChatOpen(false)} />
     </div>

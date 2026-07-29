@@ -3,70 +3,140 @@
     "id": "password-reset",
     "category": "Account",
     "question": "How do I reset my password?",
-    "keywords": ["password", "reset", "forgot password", "login", "locked out"],
+    "keywords": ["password", "reset", "forgot password", "login", "locked out", "credentials"],
     "answer": "Go to the login page and click 'Forgot Password'. Enter your registered email address and follow the link sent to your inbox. Reset links expire after 30 minutes. If you don't receive an email, check your spam folder or contact IT to verify your account email is correct."
-  },
-  {
-    "id": "vpn-connection",
-    "category": "Network",
-    "question": "I can't connect to the VPN",
-    "keywords": ["vpn", "connect", "remote access", "network", "cannot connect"],
-    "answer": "1) Confirm you have an active internet connection. 2) Make sure the VPN client is updated to the latest version. 3) Restart the VPN client and your router. 4) Verify your VPN credentials haven't expired. If the issue persists, share the exact error message with IT support."
-  },
-  {
-    "id": "software-install",
-    "category": "Software",
-    "question": "How do I request new software installation?",
-    "keywords": ["install", "software", "application", "request app", "new program"],
-    "answer": "Submit a software request ticket including the software name, version, and business justification. Approved requests are typically installed within 1-2 business days by IT via the self-service portal or remote deployment."
-  },
-  {
-    "id": "email-not-sending",
-    "category": "Email",
-    "question": "My email isn't sending or receiving",
-    "keywords": ["email", "outlook", "not sending", "not receiving", "mail stuck"],
-    "answer": "Check your internet connection and mailbox storage (full mailboxes block sending). Restart your email client. If using Outlook, try Outlook Safe Mode. If the problem continues, there may be a mail server outage - check the IT status page or contact support."
-  },
-  {
-    "id": "printer-issues",
-    "category": "Hardware",
-    "question": "My printer isn't working",
-    "keywords": ["printer", "printing", "print", "not printing"],
-    "answer": "1) Check the printer is powered on and connected to the network. 2) Clear the print queue and try again. 3) Reinstall or update the printer driver. 4) Try printing a test page from the device itself. If none of this works, note the printer's error code and contact IT."
-  },
-  {
-    "id": "slow-computer",
-    "category": "Hardware",
-    "question": "My computer is running slow",
-    "keywords": ["slow", "performance", "lagging", "freezing", "computer slow"],
-    "answer": "Restart your computer to clear temporary processes. Close unused applications and browser tabs. Check available disk space (free up space if below 10%). Run a malware scan. If the problem persists after these steps, IT may need to check for hardware issues."
-  },
-  {
-    "id": "mfa-setup",
-    "category": "Account",
-    "question": "How do I set up multi-factor authentication (MFA)?",
-    "keywords": ["mfa", "2fa", "multi-factor", "authenticator", "two factor"],
-    "answer": "Download an authenticator app (Microsoft Authenticator or Google Authenticator). Go to your account security settings, select 'Set up MFA', and scan the QR code with the app. Save your backup codes somewhere secure in case you lose your device."
-  },
-  {
-    "id": "wifi-issues",
-    "category": "Network",
-    "question": "I can't connect to WiFi",
-    "keywords": ["wifi", "wireless", "internet", "no connection", "network"],
-    "answer": "Toggle WiFi off and on, then reconnect to the correct network. Forget the network and reconnect with the correct password. Restart your device. If other devices also can't connect, the issue may be with the router - contact IT to check for an outage."
   },
   {
     "id": "account-locked",
     "category": "Account",
     "question": "My account is locked",
-    "keywords": ["locked", "account locked", "too many attempts", "disabled"],
-    "answer": "Accounts typically lock after 5 failed login attempts and unlock automatically after 30 minutes. If you need immediate access, contact IT support with your employee ID for identity verification before they can manually unlock it."
+    "keywords": ["locked", "account locked", "too many attempts", "disabled", "suspended"],
+    "answer": "Accounts lock after 5 failed login attempts and unlock automatically after 30 minutes. If you need immediate access, contact IT support with your employee ID for identity verification before they can manually unlock it."
+  },
+  {
+    "id": "mfa-setup",
+    "category": "Account",
+    "question": "How do I set up multi-factor authentication (MFA)?",
+    "keywords": ["mfa", "2fa", "multi-factor", "authenticator", "two factor", "otp"],
+    "answer": "Download an authenticator app (Microsoft Authenticator or Google Authenticator). Go to your account security settings, select 'Set up MFA', and scan the QR code with the app. Save your backup codes somewhere secure in case you lose your device."
+  },
+  {
+    "id": "mfa-lost-device",
+    "category": "Account",
+    "question": "I lost the phone with my authenticator app",
+    "keywords": ["lost phone", "new phone", "authenticator", "mfa", "backup codes", "locked out"],
+    "answer": "Use one of the backup codes you saved during MFA setup to sign in, then re-enrol your new device from account security settings. If you don't have your backup codes, contact IT support in person or by phone - MFA resets require identity verification and cannot be done over email."
+  },
+  {
+    "id": "sso-errors",
+    "category": "Account",
+    "question": "Single sign-on keeps redirecting or failing",
+    "keywords": ["sso", "single sign on", "redirect loop", "saml", "okta", "login loop"],
+    "answer": "Clear cookies for the affected site, then try again in a private/incognito window to rule out a stale session. Make sure your device clock is set to update automatically - SSO tokens fail if your system time drifts more than a few minutes. If the loop continues, report it to IT with the exact URL where it breaks."
+  },
+  {
+    "id": "vpn-connection",
+    "category": "Network",
+    "question": "I can't connect to the VPN",
+    "keywords": ["vpn", "connect", "remote access", "network", "cannot connect", "tunnel"],
+    "answer": "Work through these in order:\n1. Confirm you have an active internet connection.\n2. Make sure the VPN client is updated to the latest version.\n3. Restart the VPN client and your router.\n4. Verify your VPN credentials haven't expired.\n\nIf the issue persists, share the exact error message with IT support."
+  },
+  {
+    "id": "vpn-slow",
+    "category": "Network",
+    "question": "The VPN is connected but very slow",
+    "keywords": ["vpn slow", "slow connection", "latency", "lag", "bandwidth"],
+    "answer": "Switch to the VPN gateway closest to your location in the client's server list. Disconnect other devices streaming on your network, and prefer a wired connection or 5GHz WiFi. If speeds are still poor, run a speed test with the VPN off and share both results with IT."
+  },
+  {
+    "id": "wifi-issues",
+    "category": "Network",
+    "question": "I can't connect to WiFi",
+    "keywords": ["wifi", "wireless", "internet", "no connection", "network", "wlan"],
+    "answer": "Toggle WiFi off and on, then reconnect to the correct network. Forget the network and reconnect with the correct password. Restart your device. If other devices also can't connect, the issue may be with the router - contact IT to check for an outage."
+  },
+  {
+    "id": "email-not-sending",
+    "category": "Email",
+    "question": "My email isn't sending or receiving",
+    "keywords": ["email", "outlook", "not sending", "not receiving", "mail stuck", "inbox"],
+    "answer": "Check your internet connection and mailbox storage (full mailboxes block sending). Restart your email client. If using Outlook, try Outlook Safe Mode. If the problem continues, there may be a mail server outage - check the IT status page or contact support."
+  },
+  {
+    "id": "email-mobile-setup",
+    "category": "Email",
+    "question": "How do I set up work email on my phone?",
+    "keywords": ["mobile email", "phone", "iphone", "android", "outlook app", "setup mail"],
+    "answer": "Install the Outlook mobile app and sign in with your work email address - it will pick up the correct server settings automatically. You'll be prompted to approve the sign-in with MFA and to accept the device management policy, which is required before mail will sync."
+  },
+  {
+    "id": "email-spam",
+    "category": "Email",
+    "question": "I received a suspicious or phishing email",
+    "keywords": ["phishing", "suspicious", "spam", "scam", "malicious email", "security", "weird email", "strange email", "unknown sender", "asking for password", "fraud"],
+    "answer": "Do not click any links, open attachments, or reply. Use the 'Report Phishing' button in Outlook, which forwards it to the security team and removes it from your inbox. If you already clicked a link or entered credentials, change your password immediately and contact IT right away."
+  },
+  {
+    "id": "printer-issues",
+    "category": "Hardware",
+    "question": "My printer isn't working",
+    "keywords": ["printer", "printing", "print", "not printing", "queue"],
+    "answer": "Try these in order:\n1. Check the printer is powered on and connected to the network.\n2. Clear the print queue and try again.\n3. Reinstall or update the printer driver.\n4. Try printing a test page from the device itself.\n\nIf none of this works, note the printer's error code and contact IT."
+  },
+  {
+    "id": "slow-computer",
+    "category": "Hardware",
+    "question": "My computer is running slow",
+    "keywords": ["slow", "performance", "lagging", "freezing", "computer slow", "sluggish"],
+    "answer": "Restart your computer to clear temporary processes. Close unused applications and browser tabs. Check available disk space (free up space if below 10%). Run a malware scan. If the problem persists after these steps, IT may need to check for hardware issues."
+  },
+  {
+    "id": "disk-space",
+    "category": "Hardware",
+    "question": "I'm out of disk space",
+    "keywords": ["disk full", "storage", "no space", "hard drive", "cleanup"],
+    "answer": "Empty your Recycle Bin and Downloads folder first - these are usually the biggest wins. Run Disk Cleanup (Windows) or Manage Storage (macOS) to clear temporary files. Move large archives to your shared drive or OneDrive rather than keeping them locally. Contact IT if you still can't free enough space."
+  },
+  {
+    "id": "display-issues",
+    "category": "Hardware",
+    "question": "My external monitor isn't detected",
+    "keywords": ["monitor", "display", "screen", "second screen", "hdmi", "docking station"],
+    "answer": "Reseat both ends of the video cable and try a different port on the dock. Press Windows+P (or check System Settings > Displays on macOS) and select 'Extend'. If you're using a docking station, unplug it from power for 10 seconds and reconnect. Persistent failures usually mean a faulty cable or dock - raise a ticket for a replacement."
+  },
+  {
+    "id": "software-install",
+    "category": "Software",
+    "question": "How do I request new software installation?",
+    "keywords": ["install", "software", "application", "request app", "new program", "license"],
+    "answer": "Submit a software request ticket including the software name, version, and business justification. Approved requests are typically installed within 1-2 business days by IT via the self-service portal or remote deployment."
+  },
+  {
+    "id": "app-crashing",
+    "category": "Software",
+    "question": "An application keeps crashing",
+    "keywords": ["crash", "crashing", "quits", "not responding", "freezing", "error"],
+    "answer": "Restart the application, then restart your computer if it happens again. Check for pending updates for both the app and your operating system. Clearing the app's cache resolves most repeat crashes. If it still crashes, note the exact error message and what you were doing at the time, and open a ticket."
   },
   {
     "id": "file-recovery",
     "category": "Software",
     "question": "I accidentally deleted a file, can I recover it?",
-    "keywords": ["deleted file", "recover", "restore file", "lost file", "recycle bin"],
+    "keywords": ["deleted file", "recover", "restore file", "lost file", "recycle bin", "backup"],
     "answer": "Check the Recycle Bin/Trash first. For files stored on shared drives or cloud storage (OneDrive/Google Drive), check the 'Version History' or 'Deleted items' section, which often retains files for 30-90 days. Contact IT promptly if it's a critical file that isn't recoverable this way."
+  },
+  {
+    "id": "shared-drive-access",
+    "category": "Software",
+    "question": "I don't have access to a shared drive or folder",
+    "keywords": ["shared drive", "permissions", "access denied", "folder", "network drive"],
+    "answer": "Access to shared folders is granted by the folder's owning team, not by IT directly. Open a ticket naming the exact folder path and the manager who approved your access, and IT will route it to the data owner for approval. Approved access usually applies within one business day."
+  },
+  {
+    "id": "video-call-issues",
+    "category": "Software",
+    "question": "My camera or microphone isn't working in video calls",
+    "keywords": ["camera", "microphone", "mic", "teams", "zoom", "video call", "audio"],
+    "answer": "Close other apps that may be holding the device (only one app can use a camera at a time). In the meeting app's audio/video settings, confirm the correct device is selected. On Windows check Settings > Privacy > Camera/Microphone, and on macOS check System Settings > Privacy & Security, to confirm the app is allowed. Restart the app after changing permissions."
   }
 ]

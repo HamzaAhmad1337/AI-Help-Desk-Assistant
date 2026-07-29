@@ -1,0 +1,8 @@
+{
+  "email": { "name": "Email / Exchange", "status": "operational", "note": "No known issues." },
+  "vpn": { "name": "Corporate VPN", "status": "operational", "note": "No known issues." },
+  "wifi": { "name": "Office WiFi", "status": "operational", "note": "No known issues." },
+  "sso": { "name": "Single Sign-On", "status": "operational", "note": "No known issues." },
+  "printing": { "name": "Print Services", "status": "degraded", "note": "Third-floor printers are queuing slowly. Engineers are investigating." },
+  "fileshare": { "name": "Shared Drives", "status": "operational", "note": "No known issues." }
+}
