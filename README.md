@@ -105,11 +105,18 @@ SSE events: `delta` (text), `tool` (activity), `ticket` (created), `done`, `erro
 ## Tests
 
 ```bash
-cd backend && npm test
+cd backend  && npm test    # 44 tests
+cd frontend && npm test    # 18 tests
 ```
 
-44 tests covering retrieval quality, the agent tool loop, ticket validation,
-request validation, SSE framing, and rate limiting.
+The backend suite covers retrieval quality, the agent tool loop, ticket
+validation, request validation, SSE framing, and rate limiting. The frontend
+suite covers the Markdown renderer, including that injected markup and
+`javascript:` URLs are never turned into live elements.
+
+CI runs both suites (backend on Node 22 and 24), plus lint, a production
+build, and a JSON validity check on the data files. See
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ## Accessibility
 

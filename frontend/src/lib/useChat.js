@@ -67,7 +67,8 @@ export function useChat() {
     try {
       const storable = messages
         .slice(-MAX_STORED_MESSAGES)
-        .map(({ streaming, ...rest }) => rest);
+        // Destructured only to drop it from what gets stored.
+        .map(({ streaming: _streaming, ...rest }) => rest);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(storable));
     } catch {
       // Storage full or unavailable - the conversation still works in memory.
