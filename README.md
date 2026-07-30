@@ -39,6 +39,7 @@ backend/src/
   lib/search.js    BM25 retrieval with stemming and synonym expansion
   tickets.js       ticket store with references, priorities, persistence
   rateLimit.js     per-IP fixed-window limiter
+  feedback.js      append-only answer ratings
   config.js        env-driven configuration
 
 frontend/src/
@@ -46,7 +47,7 @@ frontend/src/
   ChatWidget.jsx       chat panel, focus management, keyboard handling
   lib/useChat.js       conversation state, SSE parsing, persistence, retry
   lib/markdown.jsx     safe Markdown -> React renderer
-  components/          Message, Icons
+  components/          Message, Icons, ErrorBoundary
 ```
 
 ### The agent loop
@@ -88,6 +89,8 @@ Queries with no indexed terms return nothing rather than a spurious article.
 | `GET` | `/api/tickets` | List tickets |
 | `POST` | `/api/tickets` | Create a ticket |
 | `GET` | `/api/tickets/:reference` | Fetch one ticket |
+| `POST` | `/api/feedback` | Rate an answer (thumbs up/down) |
+| `GET` | `/api/feedback/summary` | Aggregate rating counts |
 
 SSE events: `delta` (text), `tool` (activity), `ticket` (created), `done`, `error`.
 
@@ -101,11 +104,12 @@ SSE events: `delta` (text), `tool` (activity), `ticket` (created), `done`, `erro
 | `ALLOWED_ORIGINS` | `*` | Comma-separated CORS allowlist |
 | `RATE_LIMIT_MAX` | `20` | Requests per window per IP |
 | `RATE_LIMIT_WINDOW_MS` | `60000` | Window length |
+| `TRUST_PROXY` | unset | Set only when behind a proxy, e.g. `1` |
 
 ## Tests
 
 ```bash
-cd backend  && npm test    # 44 tests
+cd backend  && npm test    # 52 tests
 cd frontend && npm test    # 18 tests
 ```
 

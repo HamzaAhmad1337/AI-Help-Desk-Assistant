@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { createApp } from "../src/server.js";
 import { _resetForTests as resetTickets } from "../src/tickets.js";
 import { _resetForTests as resetRateLimit } from "../src/rateLimit.js";
+import { _resetForTests as resetFeedback } from "../src/feedback.js";
 
 /** Starts the app on an ephemeral port and returns a fetch helper. */
 async function withServer(run) {
@@ -26,6 +27,7 @@ const postJson = (body) => ({
 test.beforeEach(() => {
   resetTickets();
   resetRateLimit();
+  resetFeedback();
 });
 
 test("health reports status and article count", async () => {
@@ -148,5 +150,28 @@ test("rate limiting kicks in and reports headers", async () => {
     assert.ok(limited, "expected a 429 within 25 requests");
     assert.ok(limited.headers.get("retry-after"));
     assert.equal(limited.headers.get("x-ratelimit-remaining"), "0");
+  });
+});
+
+test("feedback is accepted and summarised", async () => {
+  await withServer(async (request) => {
+    const res = await request(
+      "/api/feedback",
+      postJson({ rating: "up", message: "Nice", question: "vpn?" })
+    );
+    assert.equal(res.status, 204);
+
+    await request("/api/feedback", postJson({ rating: "down" }));
+
+    const summary = await (await request("/api/feedback/summary")).json();
+    assert.deepEqual(summary, { up: 1, down: 1, total: 2 });
+  });
+});
+
+test("feedback rejects an invalid rating", async () => {
+  await withServer(async (request) => {
+    const res = await request("/api/feedback", postJson({ rating: "meh" }));
+    assert.equal(res.status, 400);
+    assert.match((await res.json()).error, /Rating must be/);
   });
 });

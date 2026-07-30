@@ -2,6 +2,8 @@ import { useState } from "react";
 import { renderMarkdown } from "../lib/markdown.jsx";
 import { IconCopy, IconCheck, IconThumbUp, IconThumbDown, IconTicket } from "./Icons.jsx";
 
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3001";
+
 function formatTime(ts) {
   return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
@@ -45,12 +47,25 @@ function TicketCard({ ticket }) {
   );
 }
 
-export default function Message({ message }) {
+export default function Message({ message, question }) {
   const [copied, setCopied] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
   const isAssistant = message.role === "assistant";
   const showActions = isAssistant && !message.streaming && message.content;
+
+  function rate(rating) {
+    const next = feedback === rating ? null : rating;
+    setFeedback(next);
+    if (!next) return;
+
+    // Fire and forget: a failed rating must never interrupt the conversation.
+    fetch(`${API_BASE}/api/feedback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rating: next, message: message.content, question }),
+    }).catch(() => {});
+  }
 
   async function copy() {
     try {
@@ -100,7 +115,7 @@ export default function Message({ message }) {
                 {copied ? <IconCheck /> : <IconCopy />}
               </button>
               <button
-                onClick={() => setFeedback(feedback === "up" ? null : "up")}
+                onClick={() => rate("up")}
                 className={feedback === "up" ? "active" : ""}
                 aria-label="Helpful"
                 aria-pressed={feedback === "up"}
@@ -109,7 +124,7 @@ export default function Message({ message }) {
                 <IconThumbUp />
               </button>
               <button
-                onClick={() => setFeedback(feedback === "down" ? null : "down")}
+                onClick={() => rate("down")}
                 className={feedback === "down" ? "active" : ""}
                 aria-label="Not helpful"
                 aria-pressed={feedback === "down"}

@@ -4,7 +4,12 @@ import cors from "cors";
 import Anthropic from "@anthropic-ai/sdk";
 import { pathToFileURL } from "url";
 
-import { PORT, ALLOWED_ORIGINS, MAX_MESSAGE_LENGTH } from "./config.js";
+import { PORT, ALLOWED_ORIGINS, MAX_MESSAGE_LENGTH, TRUST_PROXY } from "./config.js";
+import {
+  recordFeedback,
+  feedbackSummary,
+  ValidationError as FeedbackValidationError,
+} from "./feedback.js";
 import { runAgent } from "./agent.js";
 import { knowledgeBase, categories } from "./knowledgeBase.js";
 import { serviceStatus } from "./tools.js";
@@ -17,6 +22,12 @@ export const client = process.env.ANTHROPIC_API_KEY
 
 export function createApp({ anthropic = client } = {}) {
   const app = express();
+
+  // Behind a load balancer every request arrives from the proxy's address, so
+  // without this the rate limiter would treat all users as a single client.
+  // Opt-in, because trusting the header unconditionally lets a direct caller
+  // spoof X-Forwarded-For and evade the limit entirely.
+  if (TRUST_PROXY) app.set("trust proxy", TRUST_PROXY);
 
   app.use(
     cors({
@@ -151,6 +162,23 @@ export function createApp({ anthropic = client } = {}) {
     }
   });
 
+  app.post("/api/feedback", rateLimit, (req, res) => {
+    try {
+      recordFeedback(req.body ?? {});
+      res.status(204).end();
+    } catch (err) {
+      if (err instanceof FeedbackValidationError) {
+        return res.status(400).json({ error: err.message });
+      }
+      console.error("Feedback error:", err);
+      res.status(500).json({ error: "Could not record feedback." });
+    }
+  });
+
+  app.get("/api/feedback/summary", (_req, res) => {
+    res.json(feedbackSummary());
+  });
+
   app.use((_req, res) => res.status(404).json({ error: "Not found." }));
 
   // Without this, malformed or oversized JSON bodies fall through to Express's
@@ -178,10 +206,39 @@ const isDirectRun =
   process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isDirectRun) {
-  createApp().listen(PORT, () => {
+  const server = createApp().listen(PORT, () => {
     console.log(`AI Help Desk backend running on http://localhost:${PORT}`);
     if (!client) {
       console.warn("ANTHROPIC_API_KEY not set - running in knowledge-base-only mode.");
     }
   });
+
+  // A port clash is an operator mistake, not a bug worth a raw stack trace.
+  server.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(
+        `Port ${PORT} is already in use. Stop the process using it, or set PORT to something else.`
+      );
+      process.exit(1);
+    }
+    throw err;
+  });
+
+  // Let in-flight replies finish on deploy rather than cutting streams mid-answer.
+  for (const signal of ["SIGTERM", "SIGINT"]) {
+    process.once(signal, () => {
+      console.log(`\n${signal} received, closing server...`);
+
+      const forceExit = setTimeout(() => {
+        console.warn("Shutdown timed out, exiting.");
+        process.exit(1);
+      }, 10_000);
+      forceExit.unref();
+
+      server.close(() => {
+        console.log("Closed cleanly.");
+        process.exit(0);
+      });
+    });
+  }
 }

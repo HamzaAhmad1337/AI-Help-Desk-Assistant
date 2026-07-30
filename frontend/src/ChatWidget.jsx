@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Message from "./components/Message.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import { useChat } from "./lib/useChat.js";
 import { IconClose, IconSend, IconRefresh } from "./components/Icons.jsx";
 
@@ -133,8 +134,17 @@ export default function ChatWidget({ open, onClose }) {
             {settledReply}
           </div>
 
-          {messages.map((message) => (
-            <Message key={message.id} message={message} />
+          {messages.map((message, index) => (
+            <ErrorBoundary key={message.id}>
+              <Message
+                message={message}
+                // The user turn this reply answers, sent along with any rating
+                // so low-rated answers can be traced back to what was asked.
+                question={
+                  message.role === "assistant" ? messages[index - 1]?.content : undefined
+                }
+              />
+            </ErrorBoundary>
           ))}
 
           {toolStatus && (

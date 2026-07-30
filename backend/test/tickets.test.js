@@ -1,6 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createTicket, listTickets, getTicket, ValidationError, _resetForTests } from "../src/tickets.js";
+import {
+  createTicket,
+  listTickets,
+  getTicket,
+  ValidationError,
+  _resetForTests,
+  _removeForTests,
+} from "../src/tickets.js";
 
 test.beforeEach(() => _resetForTests());
 
@@ -45,4 +52,17 @@ test("lists newest first and looks up by reference", () => {
   assert.equal(listTickets()[0].subject, "Second");
   assert.equal(getTicket(second.reference).subject, "Second");
   assert.equal(getTicket("HD-0000-9999"), null);
+});
+
+test("does not reissue a reference after an earlier ticket is removed", () => {
+  const first = createTicket({ subject: "A", description: "a" });
+  const second = createTicket({ subject: "B", description: "b" });
+
+  // Simulate the first ticket being purged, then issue another. Deriving the
+  // next reference from a count would hand out `second`'s reference again.
+  _removeForTests(first.reference);
+  const third = createTicket({ subject: "C", description: "c" });
+
+  assert.notEqual(third.reference, second.reference);
+  assert.notEqual(third.reference, first.reference);
 });

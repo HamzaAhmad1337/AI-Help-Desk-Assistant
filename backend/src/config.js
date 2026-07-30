@@ -18,6 +18,12 @@ export const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "*")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+/**
+ * Express "trust proxy" setting. Unset by default: enable it only when the
+ * app genuinely sits behind a proxy, e.g. `1` for a single hop, or a CIDR.
+ */
+export const TRUST_PROXY = process.env.TRUST_PROXY || null;
+
 export const RATE_LIMIT = {
   windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60_000,
   maxRequests: Number(process.env.RATE_LIMIT_MAX) || 20,

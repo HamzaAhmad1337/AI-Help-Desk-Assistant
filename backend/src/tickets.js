@@ -47,9 +47,17 @@ function persist() {
 
 function nextReference() {
   const year = new Date().getFullYear();
-  // Reference numbers restart each year, so only count this year's tickets.
-  const countThisYear = tickets.filter((t) => t.reference.includes(`-${year}-`)).length;
-  return `HD-${year}-${String(countThisYear + 1).padStart(4, "0")}`;
+  const prefix = `HD-${year}-`;
+
+  // Derived from the highest sequence in use, not the count: counting would
+  // reissue a live reference as soon as any earlier ticket is removed.
+  const highest = tickets.reduce((max, ticket) => {
+    if (!ticket.reference?.startsWith(prefix)) return max;
+    const sequence = Number(ticket.reference.slice(prefix.length));
+    return Number.isFinite(sequence) && sequence > max ? sequence : max;
+  }, 0);
+
+  return `${prefix}${String(highest + 1).padStart(4, "0")}`;
 }
 
 export class ValidationError extends Error {}
@@ -92,4 +100,9 @@ export function getTicket(reference) {
 /** Test hook - clears the in-memory store without touching disk. */
 export function _resetForTests() {
   tickets = [];
+}
+
+/** Test hook - drops a single ticket, simulating a purge. */
+export function _removeForTests(reference) {
+  tickets = tickets.filter((t) => t.reference !== reference);
 }
