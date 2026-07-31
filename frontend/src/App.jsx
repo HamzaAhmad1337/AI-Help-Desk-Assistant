@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import ChatWidget from "./ChatWidget.jsx";
+import ServiceStatus from "./components/ServiceStatus.jsx";
 import {
   IconChat,
   IconSun,
@@ -97,6 +98,8 @@ export default function App() {
             Start a conversation
           </button>
         </header>
+
+        <ServiceStatus />
 
         <section className="features" aria-label="What Nova can help with">
           {FEATURES.map(({ Icon, title, desc }) => (

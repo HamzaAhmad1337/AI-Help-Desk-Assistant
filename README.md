@@ -47,7 +47,8 @@ frontend/src/
   ChatWidget.jsx       chat panel, focus management, keyboard handling
   lib/useChat.js       conversation state, SSE parsing, persistence, retry
   lib/markdown.jsx     safe Markdown -> React renderer
-  components/          Message, Icons, ErrorBoundary
+  components/          Message, Icons, ErrorBoundary,
+                       ServiceStatus, TicketPanel
 ```
 
 ### The agent loop
@@ -109,7 +110,7 @@ SSE events: `delta` (text), `tool` (activity), `ticket` (created), `done`, `erro
 ## Tests
 
 ```bash
-cd backend  && npm test    # 52 tests
+cd backend  && npm test    # 54 tests
 cd frontend && npm test    # 18 tests
 ```
 
@@ -122,11 +123,23 @@ CI runs both suites (backend on Node 22 and 24), plus lint, a production
 build, and a JSON validity check on the data files. See
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
+## Security
+
+Responses set `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
+`Cross-Origin-Resource-Policy` and a `default-src 'none'` CSP, and the
+`X-Powered-By` fingerprint is removed. Assistant output is rendered through a
+Markdown renderer that builds React elements directly — nothing reaches
+`dangerouslySetInnerHTML`, and only `http(s)`/`mailto` links are ever made
+clickable.
+
 ## Accessibility
 
 Escape closes the widget, Tab is trapped inside it while open, replies are
-announced via an ARIA live region, focus is visible throughout, and all motion
-respects `prefers-reduced-motion`. Light and dark themes both ship.
+announced via an ARIA live region once settled (never mid-stream), focus is
+visible throughout, and all motion respects `prefers-reduced-motion`.
+Hover-revealed controls are shown outright under `(hover: none)`, so they stay
+reachable on touch devices. Light and dark themes both ship, and the layout is
+verified at mobile width.
 
 ## Extending
 

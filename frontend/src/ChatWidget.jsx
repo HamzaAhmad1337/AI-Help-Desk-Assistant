@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import Message from "./components/Message.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
+import TicketPanel from "./components/TicketPanel.jsx";
 import { useChat } from "./lib/useChat.js";
-import { IconClose, IconSend, IconRefresh } from "./components/Icons.jsx";
+import { IconClose, IconSend, IconRefresh, IconTicket } from "./components/Icons.jsx";
 
 const QUICK_QUESTIONS = [
   "Reset my password",
@@ -14,6 +15,7 @@ const QUICK_QUESTIONS = [
 export default function ChatWidget({ open, onClose }) {
   const { messages, loading, toolStatus, error, send, retry, reset } = useChat();
   const [input, setInput] = useState("");
+  const [ticketsOpen, setTicketsOpen] = useState(false);
 
   const panelRef = useRef(null);
   const inputRef = useRef(null);
@@ -114,6 +116,14 @@ export default function ChatWidget({ open, onClose }) {
           </div>
         </div>
         <div className="widget-header-actions">
+          <button
+            onClick={() => setTicketsOpen((v) => !v)}
+            aria-label="View your tickets"
+            aria-expanded={ticketsOpen}
+            title="Your tickets"
+          >
+            <IconTicket size={15} />
+          </button>
           <button onClick={reset} aria-label="Start a new conversation" title="New conversation">
             <IconRefresh />
           </button>
@@ -122,6 +132,8 @@ export default function ChatWidget({ open, onClose }) {
           </button>
         </div>
       </header>
+
+      <TicketPanel open={ticketsOpen} onClose={() => setTicketsOpen(false)} />
 
       <div className="widget-body">
         <div className="messages" ref={scrollRef} onScroll={handleScroll}>

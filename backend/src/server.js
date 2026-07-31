@@ -36,6 +36,19 @@ export function createApp({ anthropic = client } = {}) {
   );
   app.use(express.json({ limit: "64kb" }));
 
+  // Baseline hardening. This is a JSON API, so the useful headers are the ones
+  // that stop a response being reinterpreted as something executable.
+  app.use((_req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Referrer-Policy", "no-referrer");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Cross-Origin-Resource-Policy", "same-site");
+    // Nothing here is ever a document, so everything can be denied outright.
+    res.setHeader("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'");
+    res.removeHeader("X-Powered-By");
+    next();
+  });
+
   app.get("/api/health", (_req, res) => {
     res.json({
       status: "ok",

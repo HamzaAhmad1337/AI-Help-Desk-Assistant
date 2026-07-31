@@ -175,3 +175,22 @@ test("feedback rejects an invalid rating", async () => {
     assert.match((await res.json()).error, /Rating must be/);
   });
 });
+
+test("responses carry hardening headers and no framework fingerprint", async () => {
+  await withServer(async (request) => {
+    const res = await request("/api/health");
+    assert.equal(res.headers.get("x-content-type-options"), "nosniff");
+    assert.equal(res.headers.get("x-frame-options"), "DENY");
+    assert.equal(res.headers.get("referrer-policy"), "no-referrer");
+    assert.match(res.headers.get("content-security-policy"), /frame-ancestors 'none'/);
+    assert.equal(res.headers.get("x-powered-by"), null);
+  });
+});
+
+test("status endpoint returns the service board", async () => {
+  await withServer(async (request) => {
+    const body = await (await request("/api/status")).json();
+    assert.ok(body.vpn?.name, "expected a named vpn service");
+    assert.ok(["operational", "degraded", "down"].includes(body.vpn.status));
+  });
+});
