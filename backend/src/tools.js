@@ -1,13 +1,6 @@
-import { readFileSync } from "fs";
-import { fileURLToPath } from "url";
-import path from "path";
 import { searchKnowledgeBase } from "./knowledgeBase.js";
 import { createTicket, ValidationError } from "./tickets.js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const serviceStatus = JSON.parse(
-  readFileSync(path.join(__dirname, "..", "data", "service-status.json"), "utf-8")
-);
+import { definitions, getServiceStatus } from "./serviceStatus.js";
 
 /** Tool schemas advertised to the model. */
 export const toolDefinitions = [
@@ -39,7 +32,7 @@ export const toolDefinitions = [
       properties: {
         service: {
           type: "string",
-          enum: Object.keys(serviceStatus),
+          enum: Object.keys(definitions),
           description: "The service to check.",
         },
       },
@@ -108,7 +101,10 @@ export async function executeTool(name, input) {
     }
 
     case "check_service_status": {
-      const service = serviceStatus[input.service];
+      // Uses the same probed board the status page shows, so the model and the
+      // user never disagree about whether something is down.
+      const board = await getServiceStatus();
+      const service = board[input.service];
       if (!service) {
         return { result: { error: `Unknown service '${input.service}'.` }, articles: [] };
       }
@@ -137,4 +133,4 @@ export async function executeTool(name, input) {
   }
 }
 
-export { serviceStatus };
+

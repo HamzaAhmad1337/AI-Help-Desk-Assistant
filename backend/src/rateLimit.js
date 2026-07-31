@@ -1,51 +1,104 @@
 import { RATE_LIMIT } from "./config.js";
 
 /**
- * Fixed-window rate limiter, keyed by client IP.
+ * Sliding-window rate limiter.
  *
- * In-memory by design: this guards a single node against runaway cost and
- * accidental request loops. A multi-instance deployment should front this
- * with a shared store (Redis) or an edge rate limit.
+ * A fixed window lets a client send the full quota at the very end of one
+ * window and again at the start of the next - a 2x burst straddling the
+ * boundary. This weights the previous window's count by how much of it still
+ * overlaps the trailing period, which smooths that out while staying O(1) per
+ * request (no per-request timestamp list).
+ *
+ * The store is pluggable: the default keeps counters in this process, which
+ * guards a single node. A multi-instance deployment can pass a store backed by
+ * Redis (INCR + PEXPIRE on the same keys) without touching this logic.
  */
-const buckets = new Map();
+export function createMemoryStore() {
+  const windows = new Map();
 
-// Drop expired buckets periodically so the map doesn't grow without bound.
-const sweeper = setInterval(() => {
-  const now = Date.now();
-  for (const [key, bucket] of buckets) {
-    if (now > bucket.resetAt) buckets.delete(key);
-  }
-}, RATE_LIMIT.windowMs);
-sweeper.unref?.();
+  const sweeper = setInterval(() => {
+    const cutoff = Date.now() - RATE_LIMIT.windowMs * 2;
+    for (const [key, entry] of windows) {
+      if (entry.windowStart < cutoff) windows.delete(key);
+    }
+  }, RATE_LIMIT.windowMs);
+  sweeper.unref?.();
 
-export function rateLimit(req, res, next) {
-  const key = req.ip || req.socket.remoteAddress || "unknown";
-  const now = Date.now();
-
-  let bucket = buckets.get(key);
-  if (!bucket || now > bucket.resetAt) {
-    bucket = { count: 0, resetAt: now + RATE_LIMIT.windowMs };
-    buckets.set(key, bucket);
-  }
-
-  bucket.count += 1;
-
-  const remaining = Math.max(0, RATE_LIMIT.maxRequests - bucket.count);
-  res.setHeader("X-RateLimit-Limit", RATE_LIMIT.maxRequests);
-  res.setHeader("X-RateLimit-Remaining", remaining);
-  res.setHeader("X-RateLimit-Reset", Math.ceil(bucket.resetAt / 1000));
-
-  if (bucket.count > RATE_LIMIT.maxRequests) {
-    const retryAfter = Math.ceil((bucket.resetAt - now) / 1000);
-    res.setHeader("Retry-After", retryAfter);
-    return res.status(429).json({
-      error: `Too many requests. Please wait ${retryAfter}s and try again.`,
-    });
-  }
-
-  next();
+  return {
+    get: (key) => windows.get(key),
+    set: (key, value) => windows.set(key, value),
+    clear: () => windows.clear(),
+  };
 }
 
+const defaultStore = createMemoryStore();
+
+/**
+ * Returns the decision for a key without mutating anything the caller can't
+ * see - exported so the behaviour is directly testable.
+ */
+export function consume(store, key, now, { windowMs, maxRequests }) {
+  const windowStart = Math.floor(now / windowMs) * windowMs;
+  const entry = store.get(key);
+
+  let previous = 0;
+  let current = 0;
+
+  if (entry) {
+    if (entry.windowStart === windowStart) {
+      previous = entry.previous;
+      current = entry.current;
+    } else if (entry.windowStart === windowStart - windowMs) {
+      // Last window rolls into the "previous" slot; anything older is stale.
+      previous = entry.current;
+    }
+  }
+
+  // Fraction of the previous window still inside the trailing window.
+  const elapsed = (now - windowStart) / windowMs;
+  const weighted = previous * (1 - elapsed) + current + 1;
+
+  const allowed = weighted <= maxRequests;
+  if (allowed) current += 1;
+
+  store.set(key, { windowStart, previous, current });
+
+  const resetAt = windowStart + windowMs;
+  return {
+    allowed,
+    remaining: Math.max(0, Math.floor(maxRequests - weighted)),
+    resetAt,
+    retryAfterSeconds: Math.max(1, Math.ceil((resetAt - now) / 1000)),
+  };
+}
+
+export function createRateLimit({ store = defaultStore, ...overrides } = {}) {
+  const options = { ...RATE_LIMIT, ...overrides };
+
+  return function rateLimitMiddleware(req, res, next) {
+    const key = req.ip || req.socket?.remoteAddress || "unknown";
+    const result = consume(store, key, Date.now(), options);
+
+    res.setHeader("RateLimit-Limit", options.maxRequests);
+    res.setHeader("RateLimit-Remaining", result.remaining);
+    res.setHeader("RateLimit-Reset", Math.ceil(result.resetAt / 1000));
+    // Retained alongside the standard names for existing clients.
+    res.setHeader("X-RateLimit-Limit", options.maxRequests);
+    res.setHeader("X-RateLimit-Remaining", result.remaining);
+
+    if (!result.allowed) {
+      res.setHeader("Retry-After", result.retryAfterSeconds);
+      return res.status(429).json({
+        error: `Too many requests. Please wait ${result.retryAfterSeconds}s and try again.`,
+      });
+    }
+
+    next();
+  };
+}
+
+export const rateLimit = createRateLimit();
+
 export function _resetForTests() {
-  buckets.clear();
+  defaultStore.clear();
 }

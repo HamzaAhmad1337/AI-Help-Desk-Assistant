@@ -12,8 +12,14 @@ import {
 } from "./feedback.js";
 import { runAgent } from "./agent.js";
 import { knowledgeBase, categories } from "./knowledgeBase.js";
-import { serviceStatus } from "./tools.js";
-import { createTicket, listTickets, getTicket, ValidationError } from "./tickets.js";
+import { getServiceStatus } from "./serviceStatus.js";
+import {
+  createTicket,
+  listTickets,
+  getTicket,
+  updateTicketStatus,
+  ValidationError,
+} from "./tickets.js";
 import { rateLimit } from "./rateLimit.js";
 
 export const client = process.env.ANTHROPIC_API_KEY
@@ -61,8 +67,13 @@ export function createApp({ anthropic = client } = {}) {
     res.json({ categories, articles: knowledgeBase });
   });
 
-  app.get("/api/status", (_req, res) => {
-    res.json(serviceStatus);
+  app.get("/api/status", async (_req, res) => {
+    try {
+      res.json(await getServiceStatus());
+    } catch (err) {
+      console.error("Status error:", err);
+      res.status(500).json({ error: "Could not read service status." });
+    }
   });
 
   /** Validates the shared chat request body. Returns an error string, or null. */
@@ -172,6 +183,20 @@ export function createApp({ anthropic = client } = {}) {
       }
       console.error("Ticket error:", err);
       res.status(500).json({ error: "Could not create ticket." });
+    }
+  });
+
+  app.patch("/api/tickets/:reference", rateLimit, (req, res) => {
+    try {
+      const ticket = updateTicketStatus(req.params.reference, req.body?.status);
+      if (!ticket) return res.status(404).json({ error: "Ticket not found." });
+      res.json(ticket);
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        return res.status(400).json({ error: err.message });
+      }
+      console.error("Ticket update error:", err);
+      res.status(500).json({ error: "Could not update ticket." });
     }
   });
 

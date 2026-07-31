@@ -89,6 +89,36 @@ export function createTicket({ subject, description, priority = "normal", catego
   return ticket;
 }
 
+/** Transitions a ticket may move between. Closed is terminal. */
+const ALLOWED_TRANSITIONS = {
+  open: ["in_progress", "resolved", "closed"],
+  in_progress: ["resolved", "closed", "open"],
+  resolved: ["closed", "open"],
+  closed: [],
+};
+
+export function updateTicketStatus(reference, status) {
+  const ticket = tickets.find((t) => t.reference === reference);
+  if (!ticket) return null;
+
+  if (!STATUSES.includes(status)) {
+    throw new ValidationError(`Status must be one of: ${STATUSES.join(", ")}.`);
+  }
+
+  if (status === ticket.status) return ticket;
+
+  if (!ALLOWED_TRANSITIONS[ticket.status].includes(status)) {
+    throw new ValidationError(
+      `Cannot move a ${ticket.status} ticket to ${status}.`
+    );
+  }
+
+  ticket.status = status;
+  ticket.updatedAt = new Date().toISOString();
+  persist();
+  return ticket;
+}
+
 export function listTickets({ limit = 50 } = {}) {
   return [...tickets].reverse().slice(0, limit);
 }

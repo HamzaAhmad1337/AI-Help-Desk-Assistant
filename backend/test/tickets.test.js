@@ -7,6 +7,7 @@ import {
   ValidationError,
   _resetForTests,
   _removeForTests,
+  updateTicketStatus,
 } from "../src/tickets.js";
 
 test.beforeEach(() => _resetForTests());
@@ -65,4 +66,36 @@ test("does not reissue a reference after an earlier ticket is removed", () => {
 
   assert.notEqual(third.reference, second.reference);
   assert.notEqual(third.reference, first.reference);
+});
+
+test("moves a ticket through valid statuses", () => {
+  const ticket = createTicket({ subject: "A", description: "a" });
+
+  assert.equal(updateTicketStatus(ticket.reference, "in_progress").status, "in_progress");
+  assert.equal(updateTicketStatus(ticket.reference, "resolved").status, "resolved");
+
+  const closed = updateTicketStatus(ticket.reference, "closed");
+  assert.equal(closed.status, "closed");
+  assert.ok(closed.updatedAt);
+});
+
+test("refuses to reopen a closed ticket", () => {
+  const ticket = createTicket({ subject: "A", description: "a" });
+  updateTicketStatus(ticket.reference, "closed");
+
+  assert.throws(
+    () => updateTicketStatus(ticket.reference, "open"),
+    /Cannot move a closed ticket/
+  );
+});
+
+test("rejects an unknown status and unknown reference", () => {
+  const ticket = createTicket({ subject: "A", description: "a" });
+  assert.throws(() => updateTicketStatus(ticket.reference, "banana"), ValidationError);
+  assert.equal(updateTicketStatus("HD-0000-0001", "closed"), null);
+});
+
+test("setting the same status is a no-op, not an error", () => {
+  const ticket = createTicket({ subject: "A", description: "a" });
+  assert.equal(updateTicketStatus(ticket.reference, "open").status, "open");
 });

@@ -28,3 +28,9 @@ export const RATE_LIMIT = {
   windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60_000,
   maxRequests: Number(process.env.RATE_LIMIT_MAX) || 20,
 };
+
+/** How long a probed service-status board stays cached. */
+export const STATUS_CACHE_MS = Number(process.env.STATUS_CACHE_MS) || 15_000;
+
+/** Per-service health check timeout. */
+export const STATUS_PROBE_TIMEOUT_MS = Number(process.env.STATUS_PROBE_TIMEOUT_MS) || 3_000;

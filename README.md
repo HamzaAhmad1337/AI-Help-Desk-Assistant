@@ -38,7 +38,8 @@ backend/src/
   knowledgeBase.js article loading and retrieval
   lib/search.js    BM25 retrieval with stemming and synonym expansion
   tickets.js       ticket store with references, priorities, persistence
-  rateLimit.js     per-IP fixed-window limiter
+  rateLimit.js     per-IP sliding-window limiter, pluggable store
+  serviceStatus.js health probes with TTL caching
   feedback.js      append-only answer ratings
   config.js        env-driven configuration
 
@@ -65,6 +66,24 @@ Nova is an agent, not a scripted bot. Each user message runs a tool-use loop
 Tool activity is streamed to the UI, so the user sees "Searching the knowledge
 base…" rather than an unexplained pause.
 
+### Service status
+
+Each service may declare a probe URL, overridable per service via
+`STATUS_PROBE_<SERVICE>`. Where one is configured the service is checked over
+HTTP (with a timeout) and the result cached; where it isn't, the status
+declared in the data file is reported and flagged `checked: false`. The board
+never claims to have checked something it didn't, and the model's
+`check_service_status` tool reads the same board the status page shows, so the
+two can't disagree.
+
+### Rate limiting
+
+A sliding window, not a fixed one: a fixed window lets a client spend its
+whole quota at the end of one window and again at the start of the next, a 2x
+burst across the boundary. The previous window's count is weighted by how much
+of it still overlaps, which stays O(1) per request. The store is pluggable, so
+a multi-instance deployment can swap in Redis without touching the logic.
+
 ### Retrieval
 
 `lib/search.js` implements BM25 over the article set with three additions that
@@ -90,6 +109,7 @@ Queries with no indexed terms return nothing rather than a spurious article.
 | `GET` | `/api/tickets` | List tickets |
 | `POST` | `/api/tickets` | Create a ticket |
 | `GET` | `/api/tickets/:reference` | Fetch one ticket |
+| `PATCH` | `/api/tickets/:reference` | Move a ticket's status |
 | `POST` | `/api/feedback` | Rate an answer (thumbs up/down) |
 | `GET` | `/api/feedback/summary` | Aggregate rating counts |
 
@@ -106,11 +126,14 @@ SSE events: `delta` (text), `tool` (activity), `ticket` (created), `done`, `erro
 | `RATE_LIMIT_MAX` | `20` | Requests per window per IP |
 | `RATE_LIMIT_WINDOW_MS` | `60000` | Window length |
 | `TRUST_PROXY` | unset | Set only when behind a proxy, e.g. `1` |
+| `STATUS_PROBE_<SERVICE>` | unset | Health check URL, e.g. `STATUS_PROBE_VPN` |
+| `STATUS_CACHE_MS` | `15000` | How long a probed board stays cached |
+| `STATUS_PROBE_TIMEOUT_MS` | `3000` | Per-service probe timeout |
 
 ## Tests
 
 ```bash
-cd backend  && npm test    # 54 tests
+cd backend  && npm test    # 72 tests
 cd frontend && npm test    # 18 tests
 ```
 

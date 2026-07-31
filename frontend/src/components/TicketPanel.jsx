@@ -12,9 +12,38 @@ function formatDate(iso) {
   });
 }
 
+/** Next statuses a user can move a ticket to from the panel. */
+const NEXT_STATUS = {
+  open: [["in_progress", "Start"], ["resolved", "Resolve"], ["closed", "Close"]],
+  in_progress: [["resolved", "Resolve"], ["closed", "Close"]],
+  resolved: [["closed", "Close"], ["open", "Reopen"]],
+  closed: [],
+};
+
 export default function TicketPanel({ open, onClose }) {
   const [tickets, setTickets] = useState(null);
   const [error, setError] = useState(false);
+  const [busy, setBusy] = useState(null);
+
+  async function move(reference, status) {
+    setBusy(reference);
+    try {
+      const res = await fetch(`${API_BASE}/api/tickets/${reference}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error();
+      const updated = await res.json();
+      setTickets((prev) =>
+        prev.map((t) => (t.reference === updated.reference ? updated : t))
+      );
+    } catch {
+      setError(true);
+    } finally {
+      setBusy(null);
+    }
+  }
 
   // Refetch each time the panel opens, so a ticket just raised in chat shows up.
   useEffect(() => {
@@ -74,6 +103,20 @@ export default function TicketPanel({ open, onClose }) {
               </span>
               <span>{formatDate(ticket.createdAt)}</span>
             </div>
+
+            {NEXT_STATUS[ticket.status]?.length > 0 && (
+              <div className="ticket-actions">
+                {NEXT_STATUS[ticket.status].map(([status, label]) => (
+                  <button
+                    key={status}
+                    onClick={() => move(ticket.reference, status)}
+                    disabled={busy === ticket.reference}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
           </article>
         ))}
       </div>
